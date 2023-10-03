@@ -2,7 +2,7 @@
 -- Mục đích: Cập nhật dữ liệu New Product để indexing dữ liệu này vào Elasticsearch database suggestion cho KV Retail hàng tuần/ngày
 -- Người tạo: hien.nt8@kiotviet.com
 -- Tham khảo: kiotvietplus.kv_product_suggestion.vw_barcode_to_suggestion
--- Lần sửa đổi cuối cùng: 02/10/2023
+-- Lần sửa đổi cuối cùng: 03/10/2023
 -- Mục đích sửa:Lấy dữ liệu ngành vật liệu xây dụng (5), điện tử điện máy (7), nhà thuốc (13) và siêu thị mini (27) để bổ sung dữ liệu cho bộ suggestion
 -- ##############################################################################################################################################################
 

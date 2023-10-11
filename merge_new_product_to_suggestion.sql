@@ -1,5 +1,5 @@
-MERGE `kiotvietplus-dev.kv_product_suggestion.suggestion_db_v4_test` AS T   -- 50,000
-USING `kiotvietplus-dev.kv_product_suggestion.suggestion_db_v5_test` AS S   -- 47,319
+MERGE `kiotvietplus-dev.kv_product_suggestion.suggestion_db_v5` AS T
+USING `kiotvietplus-dev.kv_product_suggestion.new_product_suggestion_5_7_13_27` AS S
 ON T._id  = S._id
 WHEN NOT MATCHED THEN
   INSERT(

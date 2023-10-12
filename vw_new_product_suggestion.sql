@@ -1,28 +1,23 @@
 -- ##########################################################################################################################################################################
 -- Mục đích: Cập nhật dữ liệu New Product ĐƯỢC TẠO hoặc CÓ GIAO DỊCH trong vòng 1 năm trở lại để indexing dữ liệu này vào Elasticsearch database suggestion cho KV Retail
--- Các ngành hàng hỗ trợ suggestion: 1, 2, 5, 6, 7, 9, 11, 12, 13, 15, 27
+-- Các ngành hàng hỗ trợ suggestion: 1, 2, 5, 6, 7, 9, 11, 12, 13, 15, 27 (tùy chỉnh để chỉ lấy ra ngành hàng cần xử lý)
 -- Người tạo: hien.nt8@kiotviet.com
 -- Tham khảo: kiotvietplus.kv_product_suggestion.vw_barcode_to_suggestion
--- Lần sửa đổi cuối cùng: 11/10/2023
+-- Lần sửa đổi cuối cùng: 12/10/2023
 -- Mục đích sửa: bổ sung điều kiện ĐƯỢC TẠO hoặc CÓ GIAO DỊCH trong vòng 1 năm trở lại và fix: lọc unique barcode trong 1 industry thay vì toàn bộ dữ liệu
 -- ##########################################################################################################################################################################
-DECLARE CONDITION_TIMESTAMP DATE;
-DECLARE USING_INDUSTRY ARRAY<INT64> DEFAULT [1, 2, 5, 6, 7, 9, 11, 12, 13, 15, 27]; -- Tất cả các ngành đang hỗ trợ product suggestion
-
-SET CONDITION_TIMESTAMP = DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH);
-SET USING_INDUSTRY = [5, 7, 12, 13, 27]; -- Tùy chỉnh để chọn ngành hàng cần xử lý
 
 with active_1y as (
   (select distinct product_key from 
     (select distinct 
       product_key
     from `kiotvietplus.kv_datawarehouse.invoice_detail_facts`
-    where date(timestamp) >= CONDITION_TIMESTAMP
+    where date(timestamp) >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
     union all
     select distinct 
       product_key
     from `kiotvietplus.kv_datawarehouse.product`
-    where date(created_date) >= CONDITION_TIMESTAMP) 
+    where date(created_date) >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)) 
   )
 )
 
@@ -60,7 +55,7 @@ JOIN `kiotvietplus.kv_datawarehouse.industry` as kv_industry ON kv_industry.indu
 
 where 1=1
 and kv_product.valid_barcode = 1
-and kv_industry.industry_key in UNNEST(USING_INDUSTRY)
+and kv_industry.industry_key in (5, 7, 12, 13, 27)
 )
 ,kv_img_url as (-- Lay image url cua cac san pham
   SELECT product_key, real_key, image

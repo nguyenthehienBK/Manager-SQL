@@ -1,12 +1,32 @@
--- ##############################################################################################################################################################
--- Mục đích: Cập nhật dữ liệu New Product để indexing dữ liệu này vào Elasticsearch database suggestion cho KV Retail hàng tuần/ngày
+-- ##########################################################################################################################################################################
+-- Mục đích: Cập nhật dữ liệu New Product ĐƯỢC TẠO hoặc CÓ GIAO DỊCH trong vòng 1 năm trở lại để indexing dữ liệu này vào Elasticsearch database suggestion cho KV Retail
+-- Các ngành hàng hỗ trợ suggestion: 1, 2, 5, 6, 7, 9, 11, 12, 13, 15, 27
 -- Người tạo: hien.nt8@kiotviet.com
 -- Tham khảo: kiotvietplus.kv_product_suggestion.vw_barcode_to_suggestion
--- Lần sửa đổi cuối cùng: 03/10/2023
--- Mục đích sửa:Lấy dữ liệu ngành vật liệu xây dụng (5), điện tử điện máy (7), nhà thuốc (13) và siêu thị mini (27) để bổ sung dữ liệu cho bộ suggestion
--- ##############################################################################################################################################################
+-- Lần sửa đổi cuối cùng: 11/10/2023
+-- Mục đích sửa: bổ sung điều kiện ĐƯỢC TẠO hoặc CÓ GIAO DỊCH trong vòng 1 năm trở lại và fix: lọc unique barcode trong 1 industry thay vì toàn bộ dữ liệu
+-- ##########################################################################################################################################################################
+DECLARE CONDITION_TIMESTAMP DATE;
+DECLARE USING_INDUSTRY ARRAY<INT64> DEFAULT [1, 2, 5, 6, 7, 9, 11, 12, 13, 15, 27]; -- Tất cả các ngành đang hỗ trợ product suggestion
 
-with raw as (
+SET CONDITION_TIMESTAMP = DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH);
+SET USING_INDUSTRY = [5, 7, 12, 13, 27]; -- Tùy chỉnh để chọn ngành hàng cần xử lý
+
+with active_1y as (
+  (select distinct product_key from 
+    (select distinct 
+      product_key
+    from `kiotvietplus.kv_datawarehouse.invoice_detail_facts`
+    where date(timestamp) >= CONDITION_TIMESTAMP
+    union all
+    select distinct 
+      product_key
+    from `kiotvietplus.kv_datawarehouse.product`
+    where date(created_date) >= CONDITION_TIMESTAMP) 
+  )
+)
+
+,raw as (
 SELECT kv_product.retailer_key
 , kv_retailer.real_key as retailer_id
 , kv_industry.v_industry_name as kv_industry
@@ -34,13 +54,13 @@ SELECT kv_product.retailer_key
 , kv_product.description
 -- FROM `kiotvietplus-dev.kv_datawarehouse.vw_products_barcode_clean_test` kv_product
 FROM `kiotvietplus.kv_datawarehouse.products_barcode_clean` kv_product
+JOIN active_1y on active_1y.product_key = kv_product.product_key  -- được tạo hoặc có giao dịch trong vòng 1 năm trở lại
 JOIN `kiotvietplus.kv_datawarehouse.retailer` as kv_retailer on kv_retailer.retailer_key = kv_product.retailer_key
 JOIN `kiotvietplus.kv_datawarehouse.industry` as kv_industry ON kv_industry.industry_key = kv_retailer.industry_key
 
 where 1=1
--- DATE(kv_product.timestamp) >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)
-and kv_product.valid_barcode =1
-and kv_industry.industry_key in (5, 7, 13, 27)
+and kv_product.valid_barcode = 1
+and kv_industry.industry_key in UNNEST(USING_INDUSTRY)
 )
 ,kv_img_url as (-- Lay image url cua cac san pham
   SELECT product_key, real_key, image
@@ -73,7 +93,7 @@ select kv_barcode.name
 , kv_barcode.industry
 , kv_barcode.barcode_source
 , kv_barcode.industry_name
-, ROW_NUMBER() OVER (PARTITION BY kv_barcode.barcode ORDER BY length(kv_barcode.name) DESC) row_number
+, ROW_NUMBER() OVER (PARTITION BY kv_barcode.barcode, kv_barcode.industry ORDER BY length(kv_barcode.name) DESC) row_number
 from kv_barcode
 where length(kv_barcode.barcode) >= 8
 )
@@ -86,12 +106,9 @@ select
   ,L.description AS description
   ,L.industry_name AS name # Tên ngành hàng
   ,CASE
-        WHEN L.industry = 1
-        OR L.industry = 2 THEN 101
-        WHEN L.industry = 6 THEN 6
-        WHEN L.industry = 9
-        OR L.industry = 11
-        OR L.industry = 15 THEN 100
+        WHEN L.industry = 1 OR L.industry = 2 THEN 101
+        WHEN L.industry = 9 OR L.industry = 11 OR L.industry = 15 OR L.industry = 27 THEN 100
+        WHEN L.industry = 12 OR L.industry = 13 THEN 102
         ELSE L.industry
     END AS industry_new
   ,L.images as img

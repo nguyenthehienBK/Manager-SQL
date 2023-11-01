@@ -40,7 +40,7 @@ FROM `kiotvietplus.kv_datawarehouse.product` product
   , product_key
   , product_id
   , product_name
-  , code
+  , code 
   , barcode
   , regexp_replace(
       regexp_replace(barcode_final, r'\+', '')

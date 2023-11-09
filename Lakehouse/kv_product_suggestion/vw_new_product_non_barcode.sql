@@ -1,6 +1,6 @@
--- kv_product_suggestion.vw_new_product_active_1y source
+-- kv_product_suggestion.vw_new_product_non_barcode source
 
-CREATE OR REPLACE VIEW kv_product_suggestion.vw_new_product_active_1y (
+CREATE OR REPLACE VIEW kv_product_suggestion.vw_new_product_non_barcode (
   _id,
   industry_origin,
   content,
@@ -12,8 +12,9 @@ CREATE OR REPLACE VIEW kv_product_suggestion.vw_new_product_active_1y (
   with_barcode,
   timestamp)
 TBLPROPERTIES (
-  'transient_lastDdlTime' = '1698809858')
-AS with active_1y as (
+  'transient_lastDdlTime' = '1699354527')
+AS (
+with active_1y as (
 select
     product_key,
     timestamp
@@ -37,7 +38,7 @@ from
             kvretail_warehouse.invoice_detail_fact
         where
             timestamp >= DATE_SUB(CURRENT_DATE(),
-            7)
+            365)
     union all
         select
             product_key
@@ -47,7 +48,7 @@ from
             kvretail_warehouse.product_dim
         where
             date(created_date) >= DATE_SUB(CURRENT_DATE(),
-            7)
+            365)
     union all
         SELECT
             product_key
@@ -58,7 +59,7 @@ from
             -- Lấy thêm sản phẩm được nhập từ supplier
         where
             created_date >= DATE_SUB(CURRENT_DATE(),
-            7)
+            455)
         group by
             product_key
      	)
@@ -66,8 +67,9 @@ from
 where
     temp_union.rn = 1
 )
+
 ,
-raw as (
+non_barcode_1y as (
 SELECT
     kv_product.retailer_key
 ,
@@ -76,8 +78,7 @@ SELECT
     kv_industry.v_industry_name as kv_industry
 ,
     kv_product.product_key
-,
-    kv_product.barcode_clean as barcode
+    --    kv_product.barcode_clean as barcode
 ,
     kv_product.product_name as product_name_original
 ,
@@ -99,7 +100,11 @@ SELECT
     )
   ) AS product_name
 ,
-    kv_industry.industry_key
+    --    kv_industry.industry_key
+    CASE
+        when kv_industry.industry_key = 27 then 9
+        else kv_industry.industry_key
+    END as industry_key
 ,
     active_1y.timestamp
 ,
@@ -115,11 +120,12 @@ JOIN kvretail_warehouse.industry_dim as kv_industry ON
     kv_industry.industry_key = kv_retailer.industry_key
 where
     1 = 1
-    and kv_product.valid_barcode = 1
+    and kv_product.valid_barcode = 0
+    and kv_product.barcode is null
     and kv_industry.industry_key in (0, 1, 2, 5, 6, 7, 9, 11, 12, 13, 15, 27)
-),
+)
 
-kv_img_url as (
+, kv_img_url as (
 -- Lay image url cua cac san pham
 SELECT
     product_key,
@@ -128,152 +134,107 @@ SELECT
 FROM
     kvretail_warehouse.product_image_dim
 )
+
 ,
-kv_barcode as
-(
-select
+aggreate_with_img as (
+SELECT
     reflect('com.citigo.udf.from_bq.CleanKvProductName',
     'cleanKvProductName',
-    raw.product_name) as name
+    nb1y.product_name) as content
     -- Clean tên sản phẩm chứa cả giá ("K") và chuỗi ("SALE")
-,
-    raw.barcode as barcode
-,
-    img_url.image as images
-,
-    raw.description as description
-,
-    CASE
-        when industry_key = 27 then 9
-        else industry_key
-    END as industry
-,
-    'kiotviet' as barcode_source
-,
-    raw.kv_industry as industry_name
-,
-    raw.timestamp as timestamp
+		,
+    nb1y.description
+		,
+    ki.image as img
+    ,
+    industry_key
+    ,
+    nb1y.kv_industry as industry_name
+    ,
+    nb1y.timestamp
 from
-    raw
-join kv_img_url img_url on
-    raw.product_key = img_url.product_key
-where
-    length(img_url.image) > 25
-        and length(raw.barcode) >= 8
+    non_barcode_1y nb1y
+join kv_img_url ki on
+    nb1y.product_key = ki.product_key
+WHERE
+    length(ki.image) > 25
 ),
 
-kv_barcode_with_name_most_use as
-(
+process_product_name as (
 SELECT
-    *
+    UPPER(REGEXP_REPLACE(lower(content), "mão", "thìn")) as content
+		,
+    description
+		,
+    img
+    ,
+    industry_key
+    ,
+    industry_name
+		,
+    timestamp
 from
-    (
-    SELECT
-        temp.barcode
-        ,
-        temp.industry
-			,
-        temp.name
-			,
-        temp.cnt
-			,
-        ROW_NUMBER() OVER (PARTITION BY temp.barcode,
-        temp.industry
-    ORDER BY
-        temp.cnt DESC) rn
-    from
-        (
-        SELECT
-            barcode
-            ,
-            industry
-				,
-            name
-				,
-            count(*) as cnt
-        from
-            kv_barcode
-        group by
-            barcode,
-            industry,
-            name) as temp)
-where
-    rn = 1
+    aggreate_with_img
 ),
-kv_barcode_final as (
+
+unique_product_name as (
 SELECT
-    kb.name
+    content
 		,
-    kb.barcode 
+    description
 		,
-    kb.images
+    img
+    ,
+    industry_key
+    ,
+    industry_name
 		,
-    kb.description
+    timestamp
 		,
-    kb.industry
-		,
-    kb.industry_name
-		,
-    kb.barcode_source
-		,
-    kb.timestamp
-		,
-    ROW_NUMBER () OVER (PARTITION BY kb.barcode,
-    kb.industry,
-    kb.name
+    ROW_NUMBER () OVER (PARTITION BY content,
+    industry_key
 ORDER BY
-    LENGTH(kb.description) DESC) row_number
+    LENGTH(description) DESC) rn
 from
-    kv_barcode as kb
-join kv_barcode_with_name_most_use as kbw
-		on
-    kb.barcode = kbw.barcode
-    and kb.industry = kbw.industry
-    and kb.name = kbw.name
+    process_product_name
 )
-
-select
-    base64((CONCAT(CAST(L.barcode AS STRING), "-", CAST(L.industry AS STRING)))) as _id
-  ,
-    L.industry AS industry_origin
-  ,
-    L.name as content
-    -- Tên sản phẩm
-  ,
-    L.barcode AS barcode
-  ,
+SELECT
+    base64(CONCAT(cast(content AS string), "-", CAST(L.industry_key AS STRING))) AS _id
+	,
+    L.industry_key AS industry_origin
+	,
+    content AS content
+	,
+    "" AS barcode
+	,
     CASE
-        WHEN L.description IS NULL THEN ''
-        ELSE L.description
+        WHEN description IS NULL
+			THEN ''
+        ELSE description
     END AS description
-  ,
+	,
     L.industry_name
-    -- Tên ngành hàng
-  ,
+	,
     CASE
-        WHEN L.industry = 1
-        OR L.industry = 2 THEN 101
-        WHEN L.industry = 9
-        OR L.industry = 11
-        OR L.industry = 15 THEN 100
-        WHEN L.industry = 12
-        OR L.industry = 13 THEN 102
-        ELSE L.industry
+        WHEN L.industry_key = 1
+        OR L.industry_key = 2 THEN 101
+        WHEN L.industry_key = 9
+        OR L.industry_key = 11
+        OR L.industry_key = 15 THEN 100
+        WHEN L.industry_key = 12
+        OR L.industry_key = 13 THEN 102
+        ELSE L.industry_key
     END AS industry_new
-,
+	,
     CASE
-        WHEN L.images IS NULL THEN ''
-        ELSE L.images
+        WHEN L.img IS NULL THEN ''
+        ELSE L.img
     END AS img
-,
-    CASE
-        WHEN L.barcode = ""
-        OR L.barcode IS NULL THEN 0
-        ELSE 1
-    END AS with_barcode
-,
+	,
+    0 AS with_barcode
+	,
     L.timestamp
-from
-    kv_barcode_final as L
-where
-    L.row_number = 1;
+FROM
+    unique_product_name as L
+WHERE
+    rn = 1);

@@ -1,6 +1,6 @@
--- kv_product_suggestion.vw_new_product_active_1y source
+-- kv_product_suggestion.vw_new_product source
 
-CREATE OR REPLACE VIEW kv_product_suggestion.vw_new_product_active_1y (
+CREATE OR REPLACE VIEW kv_product_suggestion.vw_new_product (
   _id,
   industry_origin,
   content,
@@ -12,7 +12,7 @@ CREATE OR REPLACE VIEW kv_product_suggestion.vw_new_product_active_1y (
   with_barcode,
   timestamp)
 TBLPROPERTIES (
-  'transient_lastDdlTime' = '1698809858')
+  'transient_lastDdlTime' = '1698897201')
 AS with active_1y as (
 select
     product_key,
@@ -37,7 +37,7 @@ from
             kvretail_warehouse.invoice_detail_fact
         where
             timestamp >= DATE_SUB(CURRENT_DATE(),
-            365)
+            7)
     union all
         select
             product_key
@@ -47,7 +47,7 @@ from
             kvretail_warehouse.product_dim
         where
             date(created_date) >= DATE_SUB(CURRENT_DATE(),
-            365)
+            7)
     union all
         SELECT
             product_key
@@ -58,10 +58,9 @@ from
             -- Lấy thêm sản phẩm được nhập từ supplier
         where
             created_date >= DATE_SUB(CURRENT_DATE(),
-            455)
+            7)
         group by
-            product_key
-     	)
+            product_key)
 ) as temp_union
 where
     temp_union.rn = 1
@@ -117,6 +116,7 @@ where
     1 = 1
     and kv_product.valid_barcode = 1
     and kv_industry.industry_key in (0, 1, 2, 5, 6, 7, 9, 11, 12, 13, 15, 27)
+        
 ),
 
 kv_img_url as (
@@ -159,7 +159,7 @@ join kv_img_url img_url on
     raw.product_key = img_url.product_key
 where
     length(img_url.image) > 25
-        and length(raw.barcode) >= 8
+        and length(barcode) >= 8
 ),
 
 kv_barcode_with_name_most_use as
@@ -170,23 +170,18 @@ from
     (
     SELECT
         temp.barcode
-        ,
-        temp.industry
 			,
         temp.name
 			,
         temp.cnt
 			,
-        ROW_NUMBER() OVER (PARTITION BY temp.barcode,
-        temp.industry
+        ROW_NUMBER() OVER (PARTITION BY barcode
     ORDER BY
         temp.cnt DESC) rn
     from
         (
         SELECT
             barcode
-            ,
-            industry
 				,
             name
 				,
@@ -195,7 +190,6 @@ from
             kv_barcode
         group by
             barcode,
-            industry,
             name) as temp)
 where
     rn = 1
@@ -219,7 +213,6 @@ SELECT
     kb.timestamp
 		,
     ROW_NUMBER () OVER (PARTITION BY kb.barcode,
-    kb.industry,
     kb.name
 ORDER BY
     LENGTH(kb.description) DESC) row_number
@@ -228,7 +221,6 @@ from
 join kv_barcode_with_name_most_use as kbw
 		on
     kb.barcode = kbw.barcode
-    and kb.industry = kbw.industry
     and kb.name = kbw.name
 )
 

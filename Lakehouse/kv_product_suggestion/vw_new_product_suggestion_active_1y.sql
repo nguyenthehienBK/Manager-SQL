@@ -1,6 +1,6 @@
--- kv_product_suggestion.vw_new_product source
+-- kv_product_suggestion.vw_new_product_active_1y source
 
-CREATE OR REPLACE VIEW kv_product_suggestion.vw_new_product (
+CREATE OR REPLACE VIEW kv_product_suggestion.vw_new_product_active_1y (
   _id,
   industry_origin,
   content,
@@ -12,8 +12,8 @@ CREATE OR REPLACE VIEW kv_product_suggestion.vw_new_product (
   with_barcode,
   timestamp)
 TBLPROPERTIES (
-  'transient_lastDdlTime' = '1698662032')
-AS with active_1w as (
+  'transient_lastDdlTime' = '1698897919')
+AS with active_1y as (
 select
     product_key,
     timestamp
@@ -37,7 +37,7 @@ from
             kvretail_warehouse.invoice_detail_fact
         where
             timestamp >= DATE_SUB(CURRENT_DATE(),
-            7)
+            365)
     union all
         select
             product_key
@@ -47,7 +47,21 @@ from
             kvretail_warehouse.product_dim
         where
             date(created_date) >= DATE_SUB(CURRENT_DATE(),
-            7))
+            365)
+    union all
+        SELECT
+            product_key
+     		,
+            max(created_date) as timestamp
+        from
+            kvretail_warehouse.purchase_order_detail_fact
+            -- Lấy thêm sản phẩm được nhập từ supplier
+        where
+            created_date >= DATE_SUB(CURRENT_DATE(),
+            455)
+        group by
+            product_key
+     	)
 ) as temp_union
 where
     temp_union.rn = 1
@@ -87,13 +101,13 @@ SELECT
 ,
     kv_industry.industry_key
 ,
-    active_1w.timestamp
+    active_1y.timestamp
 ,
     kv_product.description as description
 FROM
     kv_product_suggestion.barcode_clean kv_product
-JOIN active_1w on
-    active_1w.product_key = kv_product.product_key
+JOIN active_1y on
+    active_1y.product_key = kv_product.product_key
     -- được tạo hoặc có giao dịch trong vòng 1 năm trở lại
 JOIN kvretail_warehouse.retailer_dim as kv_retailer on
     kv_retailer.retailer_key = kv_product.retailer_key
@@ -102,8 +116,7 @@ JOIN kvretail_warehouse.industry_dim as kv_industry ON
 where
     1 = 1
     and kv_product.valid_barcode = 1
-    and kv_industry.industry_key in (1, 2, 5, 6, 7, 9, 11, 12, 13, 15, 27)
-        and active_1w.product_key is not null
+    and kv_industry.industry_key in (0, 1, 2, 5, 6, 7, 9, 11, 12, 13, 15, 27)
 ),
 
 kv_img_url as (
@@ -146,7 +159,7 @@ join kv_img_url img_url on
     raw.product_key = img_url.product_key
 where
     length(img_url.image) > 25
-        and length(barcode) >= 8
+        and length(raw.barcode) >= 8
 ),
 
 kv_barcode_with_name_most_use as
@@ -157,18 +170,23 @@ from
     (
     SELECT
         temp.barcode
+        ,
+        temp.industry
 			,
         temp.name
 			,
         temp.cnt
 			,
-        ROW_NUMBER() OVER (PARTITION BY barcode
+        ROW_NUMBER() OVER (PARTITION BY temp.barcode,
+        temp.industry
     ORDER BY
         temp.cnt DESC) rn
     from
         (
         SELECT
             barcode
+            ,
+            industry
 				,
             name
 				,
@@ -177,6 +195,7 @@ from
             kv_barcode
         group by
             barcode,
+            industry,
             name) as temp)
 where
     rn = 1
@@ -200,6 +219,7 @@ SELECT
     kb.timestamp
 		,
     ROW_NUMBER () OVER (PARTITION BY kb.barcode,
+    kb.industry,
     kb.name
 ORDER BY
     LENGTH(kb.description) DESC) row_number
@@ -208,6 +228,7 @@ from
 join kv_barcode_with_name_most_use as kbw
 		on
     kb.barcode = kbw.barcode
+    and kb.industry = kbw.industry
     and kb.name = kbw.name
 )
 

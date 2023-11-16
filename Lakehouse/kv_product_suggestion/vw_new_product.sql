@@ -12,7 +12,7 @@ CREATE OR REPLACE VIEW kv_product_suggestion.vw_new_product (
   with_barcode,
   timestamp)
 TBLPROPERTIES (
-  'transient_lastDdlTime' = '1698897201')
+  'transient_lastDdlTime' = '1700102195')
 AS with active_1y as (
 select
     product_key,
@@ -37,7 +37,7 @@ from
             kvretail_warehouse.invoice_detail_fact
         where
             timestamp >= DATE_SUB(CURRENT_DATE(),
-            7)
+            1)
     union all
         select
             product_key
@@ -47,7 +47,7 @@ from
             kvretail_warehouse.product_dim
         where
             date(created_date) >= DATE_SUB(CURRENT_DATE(),
-            7)
+            1)
     union all
         SELECT
             product_key
@@ -58,7 +58,7 @@ from
             -- Lấy thêm sản phẩm được nhập từ supplier
         where
             created_date >= DATE_SUB(CURRENT_DATE(),
-            7)
+            1)
         group by
             product_key)
 ) as temp_union
@@ -115,8 +115,7 @@ JOIN kvretail_warehouse.industry_dim as kv_industry ON
 where
     1 = 1
     and kv_product.valid_barcode = 1
-    and kv_industry.industry_key in (0, 1, 2, 5, 6, 7, 9, 11, 12, 13, 15, 27)
-        
+    and kv_industry.industry_key in (9, 27)
 ),
 
 kv_img_url as (
@@ -171,17 +170,21 @@ from
     SELECT
         temp.barcode
 			,
+        temp.industry,
         temp.name
 			,
         temp.cnt
 			,
-        ROW_NUMBER() OVER (PARTITION BY barcode
+        ROW_NUMBER() OVER (PARTITION BY barcode,
+        industry
     ORDER BY
         temp.cnt DESC) rn
     from
         (
         SELECT
             barcode
+            ,
+            industry
 				,
             name
 				,
@@ -190,6 +193,7 @@ from
             kv_barcode
         group by
             barcode,
+            industry,
             name) as temp)
 where
     rn = 1
@@ -213,6 +217,7 @@ SELECT
     kb.timestamp
 		,
     ROW_NUMBER () OVER (PARTITION BY kb.barcode,
+    kb.industry,
     kb.name
 ORDER BY
     LENGTH(kb.description) DESC) row_number

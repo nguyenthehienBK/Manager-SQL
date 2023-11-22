@@ -90,12 +90,12 @@ SELECT
                         REPLACE(
                           REPLACE(
                             REGEXP_REPLACE(
-                              REGEXP_REPLACE(UPPER(kv_product.product_name), r'\(.*?\)', '')
+                              REGEXP_REPLACE(kv_product.product_name, r'\(.*?\)', '')
                             , r'\[.*?\]', '')
                           , '\n', ' ')
                         , '\r', ' ')
                       , '  ', ' ')
-              , r'MẪU MỚI|HCN.|ĐỒNG GIÁ|KHUYẾN MÃI|KHUYẾN MẠI|TẶNG|KÈM|TẶNG KÈM|KHAI TRƯƠNG|GIÁ SỐC', '')-- Loại bỏ một số cụm từ đặc trưng của từng gian hàng
+              ,r'(?i)mẫu mới|hcn.|đồng giá|khuyến mại|khuyến mãi|tặng|kèm|tặng kèm|khai trương|giá sốc', '')-- Loại bỏ một số cụm từ đặc trưng của từng gian hàng
       , r' - ', ' ')-- Thay gạch nối bằng khoảng trắng
     )
   ) AS product_name

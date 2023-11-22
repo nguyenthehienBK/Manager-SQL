@@ -12,7 +12,7 @@ CREATE OR REPLACE VIEW kv_product_suggestion.vw_new_product_non_barcode (
   with_barcode,
   timestamp)
 TBLPROPERTIES (
-  'transient_lastDdlTime' = '1699354527')
+  'transient_lastDdlTime' = '1700642182')
 AS (
 with active_1y as (
 select
@@ -95,7 +95,7 @@ SELECT
                           , '\n', ' ')
                         , '\r', ' ')
                       , '  ', ' ')
-              ,r'(?i)mẫu mới|hcn.|đồng giá|khuyến mại|khuyến mãi|tặng|kèm|tặng kèm|khai trương|giá sốc', '')-- Loại bỏ một số cụm từ đặc trưng của từng gian hàng
+              , r'(?i)mẫu mới|hcn.|đồng giá|khuyến mại|khuyến mãi|tặng|kèm|tặng kèm|khai trương|giá sốc', '')-- Loại bỏ một số cụm từ đặc trưng của từng gian hàng
       , r' - ', ' ')-- Thay gạch nối bằng khoảng trắng
     )
   ) AS product_name
@@ -162,7 +162,8 @@ WHERE
 
 process_product_name as (
 SELECT
-    UPPER(REGEXP_REPLACE(lower(content), "mão", "thìn")) as content
+--    UPPER(REGEXP_REPLACE(lower(content), "mão", "thìn")) as content
+	content
 		,
     description
 		,
@@ -191,7 +192,7 @@ SELECT
 		,
     timestamp
 		,
-    ROW_NUMBER () OVER (PARTITION BY content,
+    ROW_NUMBER () OVER (PARTITION BY UPPER(content),
     industry_key
 ORDER BY
     LENGTH(description) DESC) rn
@@ -199,7 +200,7 @@ from
     process_product_name
 )
 SELECT
-    base64(CONCAT(cast(content AS string), "-", CAST(L.industry_key AS STRING))) AS _id
+    base64(CONCAT(cast(UPPER(content) AS string), "-", CAST(L.industry_key AS STRING))) AS _id
 	,
     L.industry_key AS industry_origin
 	,

@@ -115,7 +115,7 @@ JOIN kvretail_warehouse.industry_dim as kv_industry ON
 where
     1 = 1
     and kv_product.valid_barcode = 1
-    and kv_industry.industry_key in (9, 27)
+    and kv_industry.industry_key in (1, 2, 9, 27)
 ),
 
 kv_img_url as (

@@ -12,7 +12,7 @@ CREATE OR REPLACE VIEW kv_product_suggestion.vw_new_product (
   with_barcode,
   timestamp)
 TBLPROPERTIES (
-  'transient_lastDdlTime' = '1700102195')
+  'transient_lastDdlTime' = '1701948514')
 AS with active_1y as (
 select
     product_key,
@@ -226,6 +226,7 @@ from
 join kv_barcode_with_name_most_use as kbw
 		on
     kb.barcode = kbw.barcode
+    and kb.industry = kbw.industry
     and kb.name = kbw.name
 )
 

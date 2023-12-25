@@ -1,6 +1,6 @@
--- kv_product_suggestion.vw_barcode_clean_test source
+-- kv_product_suggestion.vw_barcode_clean source
 
-CREATE OR REPLACE VIEW kv_product_suggestion.vw_barcode_clean_test (
+CREATE OR REPLACE VIEW kv_product_suggestion.vw_barcode_clean (
   retailer_key,
   product_key,
   product_id,
@@ -16,7 +16,7 @@ CREATE OR REPLACE VIEW kv_product_suggestion.vw_barcode_clean_test (
   package_size,
   barcode_clean)
 TBLPROPERTIES (
-  'transient_lastDdlTime' = '1703500044')
+  'transient_lastDdlTime' = '1703212053')
 AS WITH
   kv_barcode AS (
 SELECT
@@ -73,115 +73,84 @@ SELECT
         -- Neu chua - va phan tu dau tien truoc dau - la so INT thi split va lay phan tu do
       WHEN REGEXP_LIKE(barcode_final,
         '[-]')
-            AND CAST (SPLIT_PART(barcode_final,
-            '-',
-            1) AS bigint) IS NOT NULL THEN SPLIT_PART(barcode_final,
-            '-',
-            1)
+            AND CAST (SUBSTRING(SPLIT_PART(barcode_final, '-', 1),-1) AS bigint) IS NOT NULL THEN SUBSTRING(SPLIT_PART(barcode_final, '-', 1),-1)
             -- Neu chua - va phan tu dau tien sau dau - la so INT thi split va lay phan tu do
             WHEN REGEXP_LIKE(barcode_final,
             '[-]')
-                AND CAST(SPLIT_PART(barcode_final,
-                '-',
-                2) AS bigint) IS NOT NULL THEN SPLIT_PART(barcode_final,
-                '-',
-                2)
+                AND CAST(SUBSTRING(SPLIT_PART(barcode_final,
+          '-',
+          2), 1, 1) AS bigint) IS NOT NULL THEN SUBSTRING(SPLIT_PART(barcode_final,
+        '-',
+        2), 1, 1)
                 -- Neu chua _ va phan tu dau tien truoc dau _ la so INT thi split va lay phan tu do
                 WHEN REGEXP_LIKE(barcode_final,
                 '[_]')
-                    AND CAST(SPLIT_PART(barcode_final,
-                    '_',
-                    1) AS bigint) IS NOT NULL THEN SPLIT_PART(barcode_final,
-                    '_',
-                    1)
+                    AND CAST(SUBSTRING(SPLIT_PART(barcode_final, '_', 1),-1) AS bigint) IS NOT NULL THEN SUBSTRING(SPLIT_PART(barcode_final, '_', 1),-1)
                     -- Neu chua _ va phan tu dau tien sau dau _ la so INT thi split va lay phan tu do
                     WHEN REGEXP_LIKE(barcode_final,
                     '[_]')
-                        AND CAST(SPLIT_PART(barcode_final,
-                        '_',
-                        2) AS bigint) IS NOT NULL THEN SPLIT_PART(barcode_final,
-                        '_',
-                        2)
+                        AND CAST(SUBSTRING(SPLIT_PART(barcode_final,
+          '_',
+          2), 1, 1) AS bigint) IS NOT NULL THEN SUBSTRING(SPLIT_PART(barcode_final,
+        '_',
+        2), 1, 1)
                         -- Neu chua + va phan tu dau tien truoc dau + la so INT thi split va lay phan tu do
                         WHEN REGEXP_LIKE(barcode_final,
                         r'[\+]')
-                            AND CAST(SPLIT_PART(barcode_final,
-                            '+',
-                            1) AS bigint) IS NOT NULL THEN SPLIT_PART(barcode_final,
-                            '+',
-                            1)
+                            AND CAST(SUBSTRING(SPLIT_PART(barcode_final, '+', 1),-1) AS bigint) IS NOT NULL THEN SUBSTRING(SPLIT_PART(barcode_final, '+', 1),-1)
                             -- Neu chua + va phan tu dau tien sau dau + la so INT thi split va lay phan tu do
                             WHEN REGEXP_LIKE(barcode_final,
                             r'[\+]')
-                                AND CAST(SPLIT_PART(barcode_final,
-                                '+',
-                                2) AS bigint) IS NOT NULL THEN SPLIT_PART(barcode_final,
-                                '+',
-                                2)
+                                AND CAST(SUBSTRING(SPLIT_PART(barcode_final,
+          '+',
+          2), 1, 1) AS bigint) IS NOT NULL THEN SUBSTRING(SPLIT_PART(barcode_final,
+        '+',
+        2), 1, 1)
                                 -- Neu chua / va phan tu dau tien truoc dau / la so INT thi split va lay phan tu do
                                 WHEN REGEXP_LIKE(barcode_final,
                                 '[/]')
-                                    AND CAST(SPLIT_PART(barcode_final,
-                                    '/',
-                                    1) AS bigint) IS NOT NULL THEN SPLIT_PART(barcode_final,
-                                    '/',
-                                    1)
+                                    AND CAST(SUBSTRING(SPLIT_PART(barcode_final, '/', 1),-1) AS bigint) IS NOT NULL THEN SUBSTRING(SPLIT_PART(barcode_final, '/', 1),-1)
                                     -- Neu chua / va phan tu dau tien sau dau / la so INT thi split va lay phan tu do
                                     WHEN REGEXP_LIKE(barcode_final,
                                     '[/]')
-                                        AND CAST(SPLIT_PART(barcode_final,
-                                        '/',
-                                        2) AS bigint) IS NOT NULL THEN SPLIT_PART(barcode_final,
-                                        '/',
-                                        2)
+                                        AND CAST(SUBSTRING(SPLIT_PART(barcode_final,
+          '/',
+          2), 1, 1) AS bigint) IS NOT NULL THEN SUBSTRING(SPLIT_PART(barcode_final,
+        '/',
+        2), 1, 1)
                                         -- Neu chua \ va phan tu dau tien truoc dau \ la so INT thi split va lay phan tu do
                                         WHEN REGEXP_LIKE(barcode_final,
                                         r'[\\]')
-                                            AND CAST(SPLIT_PART(barcode_final,
-                                            '\\',
-                                            1) as bigint) is not null then SPLIT_PART(barcode_final,
-                                            '\\',
-                                            1)
+                                            AND CAST(SUBSTRING(SPLIT_PART(barcode_final, '\\', 1),-1) as bigint) is not null then substring(SPLIT_PART(barcode_final, '\\', 1),-1)
                                             -- Neu chua \ va phan tu dau tien sau dau \ la so INT thi split va lay phan tu do
                                             WHEN REGEXP_LIKE(barcode_final,
                                             r'[\\]')
-                                                AND CAST(SPLIT_PART(barcode_final,
-                                                '\\',
-                                                2) as bigint) is not null then SPLIT_PART(barcode_final,
-                                                '\\',
-                                                2)
+                                                AND CAST(SUBSTRING(SPLIT_PART(barcode_final,
+                '\\', 2), 1, 1) as bigint) is not null then substring(SPLIT_PART(barcode_final, '\\', 2), 1, 1)
                                                 -- Neu chua . va phan tu dau tien truoc dau . la so INT thi split va lay phan tu do
                                                 WHEN REGEXP_LIKE(barcode_final,
                                                 r'[.]')
-                                                    AND CAST(SPLIT_PART(barcode_final,
-                                                    '.',
-                                                    1) AS bigint) IS NOT NULL THEN SPLIT_PART(barcode_final,
-                                                    '.',
-                                                    1)
+                                                    AND CAST(SUBSTRING(SPLIT_PART(barcode_final, '.', 1),-1) AS bigint) IS NOT NULL THEN SUBSTRING(SPLIT_PART(barcode_final, '.', 1),-1)
                                                     -- Neu chua . va phan tu dau tien sau dau . la so INT thi split va lay phan tu do
                                                     WHEN REGEXP_LIKE(barcode_final,
                                                     r'[.]')
-                                                        AND CAST(SPLIT_PART(barcode_final,
-                                                        '.',
-                                                        2) AS bigint) IS NOT NULL THEN SPLIT_PART(barcode_final,
-                                                        '.',
-                                                        2)
+                                                        AND CAST(SUBSTRING(SPLIT_PART(barcode_final,
+                      '.',
+                      2), 1, 1) AS bigint) IS NOT NULL THEN SUBSTRING(SPLIT_PART(barcode_final,
+                    '.',
+                    2), 1, 1)
                                                         -- Neu chua { va phan tu dau tien truoc dau { la so INT thi split va lay phan tu do
                                                         WHEN REGEXP_LIKE(barcode_final,
                                                         r'[{]')
-                                                            AND CAST(SPLIT_PART(barcode_final,
-                                                            '{',
-                                                            1) AS bigint) IS NOT NULL THEN SPLIT_PART(barcode_final,
-                                                            '{',
-                                                            1)
+                                                            AND CAST(SUBSTRING(SPLIT_PART(barcode_final, '{', 1),-1) AS bigint) IS NOT NULL THEN SUBSTRING(SPLIT_PART(barcode_final, '{', 1),-1)
                                                             -- Neu chua } va phan tu dau tien sau dau } la so INT thi split va lay phan tu do
                                                             WHEN REGEXP_LIKE(barcode_final,
                                                             r'[}]')
-                                                                AND CAST(SPLIT_PART(barcode_final,
-                                                                '}',
-                                                                2) AS bigint) IS NOT NULL THEN SPLIT_PART(barcode_final,
-                                                                '}',
-                                                                2)
+                                                                AND CAST(SUBSTRING(SPLIT_PART(barcode_final,
+                      '}',
+                      2), 1, 1) AS bigint) IS NOT NULL THEN SUBSTRING(SPLIT_PART(barcode_final,
+                    '}',
+                    2), 1, 1)
                                                                 -- Neu ki tu dau tien la chu cai thi xoa ki tu do
                                                                 WHEN REGEXP_LIKE(SUBSTRING(barcode_final, 1, 1),
                                                                 '[a-zA-Z]') THEN SUBSTRING(barcode_final, 2)

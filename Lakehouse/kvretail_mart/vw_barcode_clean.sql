@@ -1,6 +1,6 @@
--- kv_product_suggestion.vw_barcode_clean_test source
+-- kvretail_mart.vw_barcode_clean source
 
-CREATE OR REPLACE VIEW kv_product_suggestion.vw_barcode_clean_test (
+CREATE OR REPLACE VIEW kvretail_mart.vw_barcode_clean (
   retailer_key,
   product_key,
   product_id,
@@ -15,8 +15,6 @@ CREATE OR REPLACE VIEW kv_product_suggestion.vw_barcode_clean_test (
   barcode_clean_package,
   package_size,
   barcode_clean)
-TBLPROPERTIES (
-  'transient_lastDdlTime' = '1703500044')
 AS WITH
   kv_barcode AS (
 SELECT

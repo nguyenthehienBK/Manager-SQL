@@ -10,10 +10,7 @@ CREATE OR REPLACE VIEW kv_product_suggestion.vw_soi_bien_to_suggestion (
   industry_new,
   img,
   with_barcode,
-  timestamp,
-  is_valid)
-TBLPROPERTIES (
-  'transient_lastDdlTime' = '1703751817')
+  timestamp)
 AS (
 with unique_product as (
 SELECT
@@ -31,8 +28,7 @@ from
     ORDER BY
         LENGTH(img) DESC) rn
     from
-        --        kv_product_suggestion.bq_product_soibien_clean_manual_with_id) as temp
-        kv_product_suggestion.soi_bien_cleaned_2023_12_28) as temp
+        kv_product_suggestion.bq_product_soibien_clean_manual_with_id) as temp
 where
     temp.rn = 1
 )
@@ -63,8 +59,6 @@ SELECT
     0 AS with_barcode
 	,
     Date(CURRENT_date()) as timestamp
-    ,
-    TRUE as is_valid
 FROM
     unique_product as L
 

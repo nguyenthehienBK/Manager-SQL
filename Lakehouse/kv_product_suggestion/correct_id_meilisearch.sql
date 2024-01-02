@@ -11,7 +11,7 @@ TBLPROPERTIES (
   'write.parquet.compression-codec' = 'snappy')
 AS (
 	SELECT 
-		REGEXP_REPLACE(`_id`, r'[^a-zA-Z0-9]', '_') as id
+        REGEXP_REPLACE(REGEXP_REPLACE(`_id`, r"[\/=]", "_"), r"[\+]", "-") AS id
 		,industry_origin 
 		,content 
 		,barcode 

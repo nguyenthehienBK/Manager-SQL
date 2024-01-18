@@ -1,4 +1,3 @@
-
 MERGE INTO iceberg.kv_product_suggestion.new_product AS T
 USING kv_product_suggestion.new_product_non_barcode AS S
 ON T._id = S._id
@@ -14,6 +13,7 @@ WHEN NOT MATCHED THEN INSERT
     ,T.img
     ,T.with_barcode
     ,T.timestamp
+    ,T.is_valid
 )
 VALUES
 (
@@ -27,4 +27,8 @@ VALUES
     ,S.img
     ,S.with_barcode
     ,S.timestamp
+    ,TRUE
 );
+
+
+
